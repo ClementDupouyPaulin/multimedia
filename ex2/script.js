@@ -1,5 +1,10 @@
 // Exercice 2 — Leaflet + OSM + Triangle des Bermudes
-const map = L.map('map');
+
+const NICE = [43.7009, 7.2683];
+
+// ➜ vue par défaut pour éviter l'écran gris
+const map = L.map('map').setView(NICE, 11);
+
 // Fond de carte OSM
 const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
@@ -7,7 +12,6 @@ const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 // Marqueur sur Nice (centre-ville)
-const NICE = [43.7009, 7.2683];
 L.marker(NICE).addTo(map).bindPopup('Nice (centre)');
 
 // Triangle des Bermudes (Miami, Bermudes, Porto Rico)
@@ -25,20 +29,14 @@ L.polygon([MIAMI, BERMUDA, SAN_JUAN], {
 function onPos(pos) {
   const { latitude, longitude, accuracy } = pos.coords;
   const ll = [latitude, longitude];
-  // Marqueur + cercle de précision
   const userMarker = L.marker(ll).addTo(map).bindPopup('Vous êtes ici');
-  const accCircle = L.circle(ll, { radius: accuracy, color: '#60a5fa', weight: 2, fillOpacity: .1 }).addTo(map);
-  // Ajuster la vue pour tout voir
+  const accCircle = L.circle(ll, { radius: accuracy, weight: 2, fillOpacity: .1 }).addTo(map);
   const group = L.featureGroup([userMarker, accCircle]);
   map.fitBounds(group.getBounds().pad(0.25));
 }
 function onErr(err) {
   console.warn(err);
-  // Si refus/échec, centrer sur Nice pour garantir une vue
-  map.setView(NICE, 11);
+  // on garde la vue par défaut (Nice)
 }
-if ('geolocation' in navigator) {
-  navigator.geolocation.getCurrentPosition(onPos, onErr, { enableHighAccuracy: true, timeout: 10000 });
-} else {
-  onErr(new Error('Geolocation non supportée'));
-}
+
+navigator.geolocation?.getCurrentPosition(onPos, onErr, { enableHighAccuracy: true, timeout: 10000 });
