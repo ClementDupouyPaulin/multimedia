@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Exercice 3 — Leaflet Plus</title>
+  <link rel="stylesheet" href="../style.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Exercice 3 · Leaflet Plus</h1>
+      <a href="../index.html">← Retour</a>
+    </header>
+
+    <div id="map3" class="map"></div>
+
+    <div class="grid" style="margin-top:1rem">
+      <div class="card">
+        <h3>Distance à Marseille</h3>
+        <p id="dist">En attente de votre position…</p>
+      </div>
+      <div class="card">
+        <h3>Données GeoJSON (Nice)</h3>
+        <p class="small">Contour de la commune de Nice (source : <a href="https://geo.api.gouv.fr" target="_blank" rel="noopener">geo.api.gouv.fr</a>).</p>
+        <p id="geojson-status" class="small">Chargement…</p>
+      </div>
+    </div>
+
+    <p class="small">Fond de carte : OSM, CartoDB « Positron » et Stamen Toner (si disponible). Un cercle représente la précision estimée. Un segment Marseille ↔ Nice est tracé.</p>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="./script.js" type="module"></script>
+</body>
+</html>

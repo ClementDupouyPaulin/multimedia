@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Exercice 1 — Géolocalisation</title>
+  <link rel="stylesheet" href="../style.css"/>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Exercice 1 · API Géolocalisation</h1>
+      <a href="../index.html">← Retour</a>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Position instantanée (<code>getCurrentPosition</code>)</h3>
+        <table class="table" id="current"></table>
+      </div>
+      <div class="card">
+        <h3>Suivi en temps réel (<code>watchPosition</code>)</h3>
+        <table class="table" id="watch"></table>
+      </div>
+    </div>
+
+    <p class="small">Activez la localisation sur votre appareil. Sur iOS/Android, ouvrez cette page via HTTPS (GitHub Pages) pour autoriser la géolocalisation.</p>
+  </div>
+
+  <script src="./script.js" type="module"></script>
+</body>
+</html>
