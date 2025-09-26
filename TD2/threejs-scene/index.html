@@ -37,14 +37,13 @@
   <div id="credits">r180 • GLTF + HDRI • pluie/particules • capteurs • GUI • ombres</div>
 
   <script type="module">
-    // --- Imports (versions fixées) ---
-    import * as THREE from "https://unpkg.com/three@0.180.0/build/three.module.js";
-    import { OrbitControls } from "https://unpkg.com/three@0.180.0/examples/jsm/controls/OrbitControls.js";
-    import { DeviceOrientationControls } from "https://unpkg.com/three@0.180.0/examples/jsm/controls/DeviceOrientationControls.js";
-    import { GLTFLoader } from "https://unpkg.com/three@0.180.0/examples/jsm/loaders/GLTFLoader.js";
-    import { RGBELoader } from "https://unpkg.com/three@0.180.0/examples/jsm/loaders/RGBELoader.js";
-    import Stats from "https://unpkg.com/three@0.180.0/examples/jsm/libs/stats.module.js";
-    import { GUI } from "https://unpkg.com/lil-gui@0.19/dist/lil-gui.esm.js";
+    import * as THREE from "https://esm.sh/three@0.180.0";
+    import { OrbitControls } from "https://esm.sh/three@0.180.0/examples/jsm/controls/OrbitControls.js";
+    import { DeviceOrientationControls } from "https://esm.sh/three@0.180.0/examples/jsm/controls/DeviceOrientationControls.js";
+    import { GLTFLoader } from "https://esm.sh/three@0.180.0/examples/jsm/loaders/GLTFLoader.js";
+    import { RGBELoader } from "https://esm.sh/three@0.180.0/examples/jsm/loaders/RGBELoader.js";
+    import Stats from "https://esm.sh/three@0.180.0/examples/jsm/libs/stats.module.js";
+    import { GUI } from "https://esm.sh/lil-gui@0.19";
 
     // --- Setup de base ---
     const container = document.getElementById('app');

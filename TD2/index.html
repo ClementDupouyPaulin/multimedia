@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TD2 • Sensibilisation Multimédia</title>
+  <meta name="color-scheme" content="dark light" />
+  <style>
+    :root{
+      --bg:#0b0f16; --panel:#121826; --muted:#a6b0c1; --fg:#e9ecf1; --accent:#6aa8ff;
+      --ring: rgba(106,168,255,.45);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--fg);
+      background:
+        radial-gradient(900px 600px at 10% -10%, #162a4d 0%, transparent 55%),
+        radial-gradient(800px 500px at 120% 10%, #1b325d 0%, transparent 60%),
+        var(--bg);
+    }
+    .container{max-width:1100px;margin:0 auto;padding:0 16px}
+    header{padding:44px 0 12px}
+    h1{margin:0 0 6px;font-size:clamp(24px,3.3vw,40px);letter-spacing:.2px}
+    .hint{color:var(--muted);font-size:14px}
+    .nav{display:flex;gap:10px;align-items:center;margin:6px 0 0}
+    .nav a{color:var(--muted);text-decoration:none;border:1px solid rgba(255,255,255,.08);padding:6px 10px;border-radius:999px;background:#0f1525}
+    .nav a:hover{color:var(--fg);border-color:var(--accent);box-shadow:0 0 0 4px var(--ring)}
+    .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin:18px 0 40px}
+    .card{background:rgba(18,24,38,.85);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:20px;backdrop-filter:blur(6px);box-shadow:0 8px 30px rgba(0,0,0,.25)}
+    .card h2{margin:0 0 8px;font-size:20px}
+    .card p{margin:0 12px 14px 0;color:var(--muted)}
+    .tags{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+    .tag{font-size:12px;color:#d3e1ff;background:#0f1522;border:1px solid rgba(255,255,255,.08);padding:4px 8px;border-radius:999px}
+    .btn{display:inline-flex;align-items:center;gap:8px;background:#11192a;color:var(--fg);border:1px solid rgba(255,255,255,.12);padding:10px 14px;border-radius:999px;text-decoration:none;font-weight:600;transition:.18s}
+    .btn:hover{transform:translateY(-1px);border-color:var(--accent);box-shadow:0 6px 18px var(--ring)}
+    footer{color:var(--muted);font-size:13px;padding:0 0 40px}
+    @media (prefers-color-scheme: light){
+      :root{--bg:#f6f7fb; --panel:#fff; --fg:#0b1220; --muted:#546173}
+      body{background:linear-gradient(180deg,#eef3ff 0%,#f6f7fb 40%,#f6f7fb 100%)}
+      .card{background:#fff;border-color:#e6eaf3}
+      .nav a{background:#fff;border-color:#e6eaf3}
+      .btn{background:#fff;border-color:#e6eaf3}
+      .tag{background:#f2f6ff;border-color:#e6eaf3;color:#365179}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="nav"><a href="../">← Accueil</a></div>
+      <h1>TD2 • Sensibilisation Multimédia</h1>
+      <p class="hint">Scènes 3D, capteurs mobile, particules, ombres, post-processing, etc.</p>
+    </header>
+
+    <main>
+      <div class="grid">
+        <section class="card">
+          <h2>Exercice 1 — Three.js</h2>
+          <p>Caméra + lumières, objet texturé, GLTF, HDRI, pluie/particules, brouillard, Orbit/Orientation, snapshot.</p>
+          <div class="tags"><span class="tag">Three.js</span><span class="tag">GLTF</span><span class="tag">HDRI</span></div>
+          <a class="btn" href="./threejs-scene/">Ouvrir Exo 1 →</a>
+        </section>
+
+        <section class="card">
+          <h2>Exercice 2 — Babylon.js</h2>
+          <p>ArcRotate & DeviceOrientation, GLTF BoomBox, pluie GPU, GUI, ombres, bloom/FXAA, physique Ammo.js.</p>
+          <div class="tags"><span class="tag">Babylon.js</span><span class="tag">Particles</span><span class="tag">Physics</span></div>
+          <a class="btn" href="./babylonjs-scene/">Ouvrir Exo 2 →</a>
+        </section>
+      </div>
+    </main>
+
+    <footer><span id="stamp"></span></footer>
+  </div>
+  <script>
+    const d=new Date();
+    document.getElementById('stamp').textContent='Mise à jour le '+d.toLocaleDateString('fr-FR',{year:'numeric',month:'short',day:'2-digit'});
+  </script>
+</body>
+</html>
