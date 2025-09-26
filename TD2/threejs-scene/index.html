@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>TD2 — Ex.1 Three.js (r180) — scène complète + capteurs</title>
+  <style>
+    html, body { height: 100%; margin: 0; background:#0b0d12; color:#e8e9ee; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, sans-serif; }
+    #app { position: fixed; inset: 0; }
+    #hud {
+      position: fixed; left: 12px; top: 12px; z-index: 10; display: flex; gap: 8px; flex-wrap: wrap;
+      background: rgba(10,12,18,.6); border: 1px solid rgba(255,255,255,.08); padding: 8px 10px; border-radius: 10px; backdrop-filter: blur(6px);
+    }
+    #hud button, #hud .pill {
+      appearance: none; background: #151a24; border: 1px solid rgba(255,255,255,.12); color: #e8e9ee; padding: 6px 10px; border-radius: 999px; cursor: pointer; font-size: 14px;
+    }
+    #hud button:hover { background:#1a2030; }
+    #hud .pill { font-weight: 600; cursor: default; }
+    #credits {
+      position: fixed; right: 12px; bottom: 10px; opacity:.8; font-size: 12px;
+      background: rgba(10,12,18,.55); border: 1px solid rgba(255,255,255,.08); padding: 4px 8px; border-radius: 8px; backdrop-filter: blur(4px);
+    }
+    canvas { display:block; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="hud">
+    <span class="pill">Three.js — TD2 Ex.1</span>
+    <button id="btn-permission">Activer capteurs (mobile)</button>
+    <button id="btn-orbit">Contrôles: Orbit</button>
+    <button id="btn-orientation">Contrôles: Orientation</button>
+    <button id="btn-toggle-rain">Pluie ON/OFF</button>
+    <button id="btn-toggle-fog">Brouillard ON/OFF</button>
+    <button id="btn-snap">Snapshot</button>
+  </div>
+  <div id="credits">r180 • GLTF + HDRI • pluie/particules • capteurs • GUI • ombres</div>
+
+  <script type="module">
+    // --- Imports (versions fixées) ---
+    import * as THREE from "https://unpkg.com/three@0.180.0/build/three.module.js";
+    import { OrbitControls } from "https://unpkg.com/three@0.180.0/examples/jsm/controls/OrbitControls.js";
+    import { DeviceOrientationControls } from "https://unpkg.com/three@0.180.0/examples/jsm/controls/DeviceOrientationControls.js";
+    import { GLTFLoader } from "https://unpkg.com/three@0.180.0/examples/jsm/loaders/GLTFLoader.js";
+    import { RGBELoader } from "https://unpkg.com/three@0.180.0/examples/jsm/loaders/RGBELoader.js";
+    import Stats from "https://unpkg.com/three@0.180.0/examples/jsm/libs/stats.module.js";
+    import { GUI } from "https://unpkg.com/lil-gui@0.19/dist/lil-gui.esm.js";
+
+    // --- Setup de base ---
+    const container = document.getElementById('app');
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b0d12);
+
+    // Fog paramétrable
+    const fog = new THREE.FogExp2(0x0e111a, 0.025);
+    let fogEnabled = false;
+
+    const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 2000);
+    camera.position.set(4.5, 2.4, 6.5);
+
+    // Lumières
+    const hemi = new THREE.HemisphereLight(0xbfd3ff, 0x22222a, 0.6);
+    scene.add(hemi);
+
+    const dir = new THREE.DirectionalLight(0xffffff, 1.15);
+    dir.position.set(6, 8, 4);
+    dir.castShadow = true;
+    dir.shadow.mapSize.set(2048, 2048);
+    dir.shadow.camera.near = 1;
+    dir.shadow.camera.far = 40;
+    dir.shadow.camera.left = -15;
+    dir.shadow.camera.right = 15;
+    dir.shadow.camera.top = 15;
+    dir.shadow.camera.bottom = -15;
+    scene.add(dir);
+
+    // Sol
+    const floorGeo = new THREE.PlaneGeometry(80, 80);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1b2131, roughness: 0.95, metalness: 0.0 });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI/2;
+    floor.position.y = -1.2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // Contrôles
+    const orbit = new OrbitControls(camera, renderer.domElement);
+    orbit.enableDamping = true;
+    let orientationControls = null; // activés via bouton
+
+    // Stats + GUI
+    const stats = new Stats();
+    stats.dom.style.cssText = "position:fixed;right:12px;top:12px;z-index:11;opacity:.9";
+    document.body.appendChild(stats.dom);
+
+    const gui = new GUI({ title: "Paramètres", container: document.body });
+    const params = {
+      rotationSpeed: 0.5,
+      rain: true,
+      envIntensity: 1.0,
+      fog: false,
+      modelAutoRotate: true,
+      dropCount: 6000
+    };
+    gui.add(params, "rotationSpeed", 0, 2, 0.01).name("Vitesse rotation");
+    gui.add(params, "rain").name("Pluie");
+    gui.add(params, "fog").name("Brouillard").onChange(v => {
+      fogEnabled = v;
+      scene.fog = v ? fog : null;
+    });
+    gui.add(params, "envIntensity", 0, 2, 0.01).name("Intensité HDRI");
+    gui.add(params, "modelAutoRotate").name("Rotation modèle");
+    gui.add(params, "dropCount", 1000, 20000, 500).name("Nb gouttes").onFinishChange(rebuildRain);
+
+    // HDRI (environnement + reflets PBR)
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    new RGBELoader()
+      .setPath("https://threejs.org/examples/textures/equirectangular/")
+      .load("royal_esplanade_1k.hdr", (hdrTex) => {
+        const envMap = pmrem.fromEquirectangular(hdrTex).texture;
+        scene.environment = envMap;
+        hdrTex.dispose();
+      });
+
+    // Objet générique texturé (cube)
+    const tex = new THREE.TextureLoader().load("https://threejs.org/examples/textures/uv_grid_opengl.jpg");
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    const box = new THREE.Mesh(
+      new THREE.BoxGeometry(1.2, 1.2, 1.2),
+      new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6, metalness: 0.1 })
+    );
+    box.position.set(-2.25, -0.4, 0);
+    box.castShadow = true;
+    scene.add(box);
+
+    // Chargement modèle GLTF (Damaged Helmet)
+    const gltfLoader = new GLTFLoader();
+    // NB: modèle en ligne fiable; évite d’avoir à gérer les fichiers localement
+    const MODEL_URL = "https://rawcdn.githack.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb";
+    let helmet = null;
+    gltfLoader.load(MODEL_URL, (gltf) => {
+      helmet = gltf.scene;
+      helmet.traverse(o => { if (o.isMesh){ o.castShadow = true; o.receiveShadow = true; } });
+      helmet.scale.setScalar(1.8);
+      helmet.position.set(1.8, -0.4, 0);
+      scene.add(helmet);
+    });
+
+    // Pluie (particules)
+    let rain, rainPositions, rainVel;
+    function buildRain(count=6000) {
+      const geo = new THREE.BufferGeometry();
+      const positions = new Float32Array(count * 3);
+      const velocities = new Float32Array(count);
+      const range = 35;
+      for (let i=0; i<count; i++) {
+        positions[3*i+0] = (Math.random()-0.5)*range;
+        positions[3*i+1] = Math.random()*20 + 5;
+        positions[3*i+2] = (Math.random()-0.5)*range;
+        velocities[i] = 0.05 + Math.random()*0.35;
+      }
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const mat = new THREE.PointsMaterial({ size: 0.05, transparent:true, opacity:0.9, depthWrite:false });
+      rain = new THREE.Points(geo, mat);
+      rain.frustumCulled = false;
+      scene.add(rain);
+      rainPositions = positions;
+      rainVel = velocities;
+    }
+    function rebuildRain() {
+      if (rain) { scene.remove(rain); rain.geometry.dispose(); rain.material.dispose(); }
+      buildRain(params.dropCount|0);
+    }
+    rebuildRain();
+
+    // Animation
+    const clock = new THREE.Clock();
+    function animate() {
+      const dt = Math.min(clock.getDelta(), 0.033);
+      const t = clock.elapsedTime;
+
+      // Cube qui tourne
+      box.rotation.y += dt * params.rotationSpeed;
+      box.rotation.x += dt * 0.3 * params.rotationSpeed;
+
+      // Rotation douce du modèle GLTF
+      if (helmet && params.modelAutoRotate) {
+        helmet.rotation.y += dt * 0.5;
+      }
+
+      // Met à jour pluie
+      if (rain) {
+        const arr = rainPositions;
+        for (let i=0; i<rainVel.length; i++) {
+          arr[3*i+1] -= rainVel[i];
+          if (arr[3*i+1] < -1.0) {
+            arr[3*i+0] = (Math.random()-0.5)*35;
+            arr[3*i+1] = Math.random()*20 + 5;
+            arr[3*i+2] = (Math.random()-0.5)*35;
+          }
+        }
+        rain.geometry.attributes.position.needsUpdate = true;
+        rain.visible = params.rain;
+      }
+
+      // Contrôles
+      orbit.update();
+
+      // HDRI intensité
+      if (scene.environment) {
+        scene.traverse(o => { if (o.material && 'envMapIntensity' in o.material) o.material.envMapIntensity = params.envIntensity; });
+      }
+
+      renderer.render(scene, camera);
+      stats.update();
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    // Capteurs (DeviceOrientation)
+    let usingOrientation = false;
+    function useOrientationControls() {
+      if (orientationControls) return;
+      orientationControls = new DeviceOrientationControls(camera);
+      usingOrientation = true;
+    }
+    async function requestSensorPermission() {
+      const hasIOS = typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function";
+      try {
+        if (hasIOS) {
+          const state = await DeviceOrientationEvent.requestPermission();
+          if (state !== "granted") { alert("Permission refusée"); return; }
+        }
+        useOrientationControls();
+      } catch(err) {
+        console.warn(err);
+        useOrientationControls();
+      }
+    }
+
+    // Boutons HUD
+    document.getElementById("btn-permission").addEventListener("click", requestSensorPermission);
+    document.getElementById("btn-orbit").addEventListener("click", () => { usingOrientation = false; orientationControls = null; });
+    document.getElementById("btn-orientation").addEventListener("click", () => { useOrientationControls(); usingOrientation = true; });
+    document.getElementById("btn-toggle-rain").addEventListener("click", ()=> params.rain = !params.rain);
+    document.getElementById("btn-toggle-fog").addEventListener("click", ()=> { params.fog = !params.fog; scene.fog = params.fog ? fog : null; });
+    document.getElementById("btn-snap").addEventListener("click", () => {
+      const url = renderer.domElement.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = url; a.download = "threejs_snapshot.png"; a.click();
+    });
+
+    // Responsive
+    addEventListener("resize", () => {
+      camera.aspect = innerWidth/innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+  </script>
+</body>
+</html>

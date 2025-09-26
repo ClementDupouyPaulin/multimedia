@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>TD2 — Ex.2 Babylon.js — scène complète + capteurs + physique</title>
+  <style>
+    html, body { height: 100%; margin: 0; background:#0b0d12; color:#e8e9ee; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, sans-serif; }
+    #renderCanvas { width: 100%; height: 100%; touch-action: none; display:block; }
+    #hud {
+      position: fixed; left: 12px; top: 12px; z-index: 10; display: flex; gap: 8px; flex-wrap: wrap;
+      background: rgba(10,12,18,.6); border: 1px solid rgba(255,255,255,.08); padding: 8px 10px; border-radius: 10px; backdrop-filter: blur(6px);
+    }
+    #hud button, #hud .pill {
+      appearance: none; background: #151a24; border: 1px solid rgba(255,255,255,.12); color: #e8e9ee; padding: 6px 10px; border-radius: 999px; cursor: pointer; font-size: 14px;
+    }
+    #hud button:hover { background:#1a2030; }
+    #hud .pill { font-weight: 600; cursor: default; }
+    #credits {
+      position: fixed; right: 12px; bottom: 10px; opacity:.85; font-size: 12px;
+      background: rgba(10,12,18,.55); border: 1px solid rgba(255,255,255,.08); padding: 4px 8px; border-radius: 8px; backdrop-filter: blur(4px);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="renderCanvas"></canvas>
+  <div id="hud">
+    <span class="pill">Babylon.js — TD2 Ex.2</span>
+    <button id="btn-permission">Activer capteurs (mobile)</button>
+    <button id="btn-orbit">Caméra ArcRotate</button>
+    <button id="btn-orientation">Caméra Orientation</button>
+    <button id="btn-toggle-rain">Pluie ON/OFF</button>
+    <button id="btn-physics">Physique ON/OFF</button>
+  </div>
+  <div id="credits">Babylon v8 • GLTF • GUI • particules (pluie) • ombres • physique (AmmoJS)</div>
+
+  <!-- Babylon core + modules officiels CDN -->
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+  <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+  <script src="https://cdn.babylonjs.com/ammo.js"></script>
+
+  <script>
+    const canvas = document.getElementById("renderCanvas");
+    const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+
+    let scene, arcCam, orientCam, activeCam;
+    let rainSystem = null;
+    let physicsEnabled = false;
+
+    async function createScene() {
+      scene = new BABYLON.Scene(engine);
+      scene.clearColor = new BABYLON.Color4(0.06, 0.07, 0.1, 1);
+
+      // Caméras
+      arcCam = new BABYLON.ArcRotateCamera("arc", -Math.PI/4, Math.PI/3, 12, new BABYLON.Vector3(0, 1, 0), scene);
+      arcCam.attachControl(canvas, true);
+
+      orientCam = new BABYLON.DeviceOrientationCamera("doCam", new BABYLON.Vector3(0, 1.5, -10), scene);
+      // Par défaut on démarre en ArcRotate
+      activeCam = arcCam;
+      scene.activeCamera = arcCam;
+
+      // Lumières
+      const hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
+      hemi.intensity = 0.45;
+      const dir = new BABYLON.DirectionalLight("dir", new BABYLON.Vector3(-1, -2, -1), scene);
+      dir.position = new BABYLON.Vector3(10, 12, 8);
+      dir.intensity = 1.1;
+
+      // Ombres
+      const shadowGen = new BABYLON.ShadowGenerator(2048, dir);
+      shadowGen.usePoissonSampling = true;
+
+      // Sol + environnement
+      const ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 80, height: 80}, scene);
+      const gMat = new BABYLON.PBRMaterial("gMat", scene);
+      gMat.roughness = 0.95; gMat.metallic = 0.0;
+      gMat.albedoColor = new BABYLON.Color3(.08, .1, .13);
+      ground.material = gMat;
+      ground.receiveShadows = true;
+
+      const env = scene.createDefaultEnvironment({
+        skyboxSize: 128,
+        environmentTexture: BABYLON.CubeTexture.CreateFromPrefilteredData("https://playground.babylonjs.com/textures/environment.dds", scene),
+        createGround: false
+      });
+
+      // Objet générique texturé
+      const box = BABYLON.MeshBuilder.CreateBox("box", { size: 1.4 }, scene);
+      const tex = new BABYLON.Texture("https://assets.babylonjs.com/environments/grass.jpg", scene);
+      const pbr = new BABYLON.PBRMaterial("pbr", scene);
+      pbr.albedoTexture = tex; pbr.roughness = 0.5; pbr.metallic = 0.1;
+      box.material = pbr;
+      box.position = new BABYLON.Vector3(-2.3, 0.3, 0);
+      box.receiveShadows = true; shadowGen.addShadowCaster(box);
+
+      // Modèle 3D GLTF (BoomBox)
+      BABYLON.SceneLoader.Append("https://assets.babylonjs.com/meshes/BoomBox/", "BoomBox.gltf", scene, function(scene) {
+        const bb = scene.getMeshByName("BoomBox");
+        if (bb) {
+          bb.position = new BABYLON.Vector3(2.0, 0.2, 0);
+          bb.scaling = new BABYLON.Vector3(60, 60, 60);
+          bb.rotation = new BABYLON.Vector3(0, Math.PI*0.2, 0);
+          bb.receiveShadows = true; shadowGen.addShadowCaster(bb);
+        }
+      });
+
+      // Particules (pluie)
+      const startRain = () => {
+        const capacity = 8000;
+        const emitter = new BABYLON.Mesh("rainEmitter", scene);
+        emitter.isVisible = false;
+        emitter.position = new BABYLON.Vector3(0, 12, 0);
+        if (BABYLON.GPUParticleSystem.IsSupported) {
+          rainSystem = new BABYLON.GPUParticleSystem("rain", { capacity }, scene);
+        } else {
+          rainSystem = new BABYLON.ParticleSystem("rain", capacity, scene);
+        }
+        rainSystem.particleTexture = new BABYLON.Texture("https://assets.babylonjs.com/textures/flare.png", scene);
+        rainSystem.emitter = emitter;
+        rainSystem.minEmitBox = new BABYLON.Vector3(-20, 0, -20);
+        rainSystem.maxEmitBox = new BABYLON.Vector3( 20, 0,  20);
+        rainSystem.minSize = 0.03; rainSystem.maxSize = 0.06;
+        rainSystem.emitRate = 4000;
+        rainSystem.minLifeTime = 0.8; rainSystem.maxLifeTime = 1.2;
+        rainSystem.minEmitPower = 2; rainSystem.maxEmitPower = 3;
+        rainSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
+        rainSystem.direction1 = new BABYLON.Vector3(0, -1, 0);
+        rainSystem.direction2 = new BABYLON.Vector3(0, -1, 0);
+        rainSystem.color1 = new BABYLON.Color4(0.8,0.9,1.0,0.9);
+        rainSystem.color2 = new BABYLON.Color4(0.75,0.85,1.0,0.9);
+        rainSystem.start();
+      };
+      startRain();
+
+      // Physique (AmmoJS)
+      const enablePhysics = async () => {
+        if (physicsEnabled) return;
+        if (typeof Ammo === "undefined") {
+          console.warn("Ammo.js absent");
+          return;
+        }
+        await Ammo(); // important : initialiser le module avant
+        const plugin = new BABYLON.AmmoJSPlugin();
+        scene.enablePhysics(new BABYLON.Vector3(0, -9.81, 0), plugin);
+        physicsEnabled = true;
+
+        // Imposteurs
+        ground.physicsImpostor = new BABYLON.PhysicsImpostor(ground, BABYLON.PhysicsImpostor.BoxImpostor,
+          { mass: 0, restitution: 0.2, friction: 0.9 }, scene);
+        box.physicsImpostor = new BABYLON.PhysicsImpostor(box, BABYLON.PhysicsImpostor.BoxImpostor,
+          { mass: 2, restitution: 0.1, friction: 0.6 }, scene);
+
+        // Spawn de boules physiques au clic
+        scene.onPointerObservable.add((pointerInfo) => {
+          if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN) {
+            const sphere = BABYLON.MeshBuilder.CreateSphere("s", { diameter: 0.5 }, scene);
+            const m = new BABYLON.PBRMaterial("m", scene);
+            m.albedoColor = new BABYLON.Color3(0.8, 0.2, 0.2);
+            sphere.material = m;
+            sphere.position = activeCam.globalPosition.add(activeCam.getForwardRay().direction.scale(2));
+            shadowGen.addShadowCaster(sphere);
+            sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor,
+              { mass: 1, restitution: 0.6, friction: 0.5 }, scene);
+            const impulse = activeCam.getForwardRay().direction.scale(5);
+            sphere.physicsImpostor.applyImpulse(impulse, sphere.getAbsolutePosition());
+          }
+        });
+      };
+
+      // Pipeline post-process (bloom léger)
+      const pipeline = new BABYLON.DefaultRenderingPipeline("pipeline", true, scene, [arcCam, orientCam]);
+      pipeline.bloomEnabled = true;
+      pipeline.bloomWeight = 0.25;
+      pipeline.fxaaEnabled = true;
+
+      // GUI overlay
+      const ui = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+      const stack = new BABYLON.GUI.StackPanel(); stack.isVertical = true; stack.paddingTop = "60px"; ui.addControl(stack);
+      function addToggle(text, initial, cb) {
+        const panel = new BABYLON.GUI.StackPanel(); panel.height = "36px"; panel.isVertical = false; panel.width = "260px"; panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        const checkbox = new BABYLON.GUI.Checkbox(); checkbox.width = "22px"; checkbox.height = "22px"; checkbox.isChecked = initial; checkbox.onIsCheckedChangedObservable.add(cb);
+        const label = new BABYLON.GUI.TextBlock(); label.text = "  " + text; label.color = "white"; label.fontSize = 16; label.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        panel.addControl(checkbox); panel.addControl(label); stack.addControl(panel);
+        return checkbox;
+      }
+      const rainToggle = addToggle("Pluie", true, v => { if (rainSystem) v ? rainSystem.start() : rainSystem.stop(); });
+      const physToggle = addToggle("Physique", false, v => { if (v) enablePhysics(); else { scene.disablePhysicsEngine(); physicsEnabled = false; } });
+
+      // Boutons HUD natifs
+      document.getElementById("btn-toggle-rain").addEventListener("click", () => {
+        if (!rainSystem) return;
+        if (rainSystem.isStarted()) rainSystem.stop(); else rainSystem.start();
+        rainToggle.isChecked = rainSystem.isStarted();
+      });
+      document.getElementById("btn-physics").addEventListener("click", async () => {
+        if (!physicsEnabled) { await enablePhysics(); physToggle.isChecked = true; } else { scene.disablePhysicsEngine(); physicsEnabled = false; physToggle.isChecked = false; }
+      });
+
+      // Caméras + capteurs
+      const switchToArc = () => { scene.activeCamera = arcCam; activeCam = arcCam; arcCam.attachControl(canvas, true); };
+      const switchToOrientation = () => { scene.activeCamera = orientCam; activeCam = orientCam; orientCam.attachControl(canvas, true); };
+
+      document.getElementById("btn-orbit").addEventListener("click", switchToArc);
+      document.getElementById("btn-orientation").addEventListener("click", switchToOrientation);
+
+      // Permission iOS pour DeviceOrientation
+      async function requestSensorPermission() {
+        const hasIOS = typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function";
+        try {
+          if (hasIOS) {
+            const state = await DeviceOrientationEvent.requestPermission();
+            if (state !== "granted") { alert("Permission refusée"); return; }
+          }
+          switchToOrientation();
+        } catch (e) { console.warn(e); switchToOrientation(); }
+      }
+      document.getElementById("btn-permission").addEventListener("click", requestSensorPermission);
+
+      // Évènements utilitaires
+      window.addEventListener("resize", () => engine.resize());
+
+      return scene;
+    }
+
+    createScene().then(() => {
+      engine.runRenderLoop(() => {
+        scene.render();
+      });
+    });
+  </script>
+</body>
+</html>
