@@ -1,14 +1,16 @@
-// Imports ESM (compatibles GitHub Pages)
+// === Imports ES Modules (fiables sur GitHub Pages) ===
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 
-// ---------- THREE.js (scène + terre) ----------
+// ---------- THREE : scène + Terre ----------
 const container = document.getElementById('globe');
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(50, container.clientWidth/container.clientHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(
+  50, container.clientWidth / container.clientHeight, 0.1, 1000
+);
 camera.position.set(0, 1.8, 4);
 
-const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(window.devicePixelRatio || 1);
 renderer.setSize(container.clientWidth, container.clientHeight);
 container.appendChild(renderer.domElement);
@@ -16,21 +18,48 @@ container.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-// Lumières
-scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-const dir = new THREE.DirectionalLight(0xffffff, 0.6); dir.position.set(4,3,2); scene.add(dir);
+// Lumières (highlight visible comme sur ta photo)
+scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+dir.position.set(-3, 4, 2);
+scene.add(dir);
 
-// Terre (R=1) + texture
+// Terre (R=1)
 const R = 1;
-const textureUrl = 'https://threejs.org/examples/textures/land_ocean_ice_cloud_2048.jpg';
-const tex = new THREE.TextureLoader().load(textureUrl);
-const globe = new THREE.Mesh(new THREE.SphereGeometry(R, 64, 64), new THREE.MeshPhongMaterial({ map: tex }));
+const tex = new THREE.TextureLoader().load(
+  'https://threejs.org/examples/textures/land_ocean_ice_cloud_2048.jpg'
+);
+const globe = new THREE.Mesh(
+  new THREE.SphereGeometry(R, 96, 96),
+  new THREE.MeshPhongMaterial({ map: tex, shininess: 18 })
+);
 scene.add(globe);
 
-// Marqueurs (drapeaux)
-const markersGroup = new THREE.Group(); scene.add(markersGroup);
+// --- Petits points colorés (InstancedMesh) ---
+const pointsData = []; // {lat,lon,color}
+let pointsMesh;
+const dotGeo = new THREE.SphereGeometry(0.01, 8, 8);
 
-function latLonToVector3(lat, lon, radius=R, altitude=0){
+function buildPoints(instances){
+  // supprime l'ancien
+  if (pointsMesh) { scene.remove(pointsMesh); pointsMesh.geometry.dispose(); }
+
+  const mat = new THREE.MeshBasicMaterial({ vertexColors: true });
+  pointsMesh = new THREE.InstancedMesh(dotGeo, mat, instances.length);
+  pointsMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+  instances.forEach((p, i) => {
+    const pos = latLonToVector3(p.lat, p.lon, R, 0.02);
+    const m = new THREE.Matrix4().setPosition(pos);
+    pointsMesh.setMatrixAt(i, m);
+    pointsMesh.setColorAt(i, new THREE.Color(p.color || '#ff6666'));
+  });
+  pointsMesh.instanceColor.needsUpdate = true;
+  scene.add(pointsMesh);
+}
+
+// Conversion lat/lon → XYZ (axes Three)
+function latLonToVector3(lat, lon, radius = R, altitude = 0){
   const phi = (90 - lat) * Math.PI / 180;
   const theta = (lon + 180) * Math.PI / 180;
   const r = radius + altitude;
@@ -41,25 +70,15 @@ function latLonToVector3(lat, lon, radius=R, altitude=0){
   );
 }
 
-function createFlagMarker(lat, lon, flagUrl, label){
-  const map = new THREE.TextureLoader().load(flagUrl || 'https://flagcdn.com/w20/un.png');
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, depthTest:true }));
-  sprite.scale.set(0.22, 0.14, 1);
-  sprite.position.copy(latLonToVector3(lat, lon, R, 0.02));
-  sprite.userData = { lat, lon, label };
-  markersGroup.add(sprite);
-}
-function clearGroup(g){ while(g.children.length) g.remove(g.children[0]); }
-
-// Animation d’orientation du globe
+// Oriente gentiment le globe vers (lat,lon)
 function spinTo(lat, lon){
-  const targetEuler = new THREE.Euler(
-    THREE.MathUtils.degToRad(-lat),  // pitch
-    THREE.MathUtils.degToRad(lon),   // yaw
+  const target = new THREE.Euler(
+    THREE.MathUtils.degToRad(-lat),
+    THREE.MathUtils.degToRad(lon),
     0, 'XYZ'
   );
   const q0 = globe.quaternion.clone();
-  const q1 = new THREE.Quaternion().setFromEuler(targetEuler);
+  const q1 = new THREE.Quaternion().setFromEuler(target);
   const t0 = performance.now(), dur = 700;
   (function anim(){
     const t = Math.min(1, (performance.now()-t0)/dur);
@@ -68,48 +87,55 @@ function spinTo(lat, lon){
   })();
 }
 
-// Marqueur utilisateur
+// Marqueur utilisateur (petit point rouge)
 const userMarker = new THREE.Mesh(
-  new THREE.SphereGeometry(0.02,16,16), new THREE.MeshBasicMaterial({ color: 0xff5555 })
+  new THREE.SphereGeometry(0.02, 16, 16),
+  new THREE.MeshBasicMaterial({ color: 0xff4d4d })
 );
-userMarker.visible = false; scene.add(userMarker);
+userMarker.visible = false;
+scene.add(userMarker);
 
-// Resize
-addEventListener('resize', () => {
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  camera.aspect = container.clientWidth/container.clientHeight;
-  camera.updateProjectionMatrix();
-});
-
-// Picking → recentrer Leaflet
+// Raycasting : récupérer l’index d’un point (InstancedMesh)
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 renderer.domElement.addEventListener('pointerdown', (e) => {
+  if (!pointsMesh) return;
   const rect = renderer.domElement.getBoundingClientRect();
   mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
   mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
-  const hit = raycaster.intersectObjects(markersGroup.children, true)[0];
-  if (hit) {
-    const { lat, lon } = hit.object.userData;
-    map.setView([lat, lon], 5);
+  const hit = raycaster.intersectObject(pointsMesh, true)[0];
+  if (hit && hit.instanceId != null) {
+    const p = pointsData[hit.instanceId];
+    miniMap.setView([p.lat, p.lon], 5);
   }
 });
 
-// Boucle
+// Resize
+addEventListener('resize', () => {
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+});
+
+// Loop
 renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
 
-// ---------- Leaflet ----------
-const map = L.map('map').setView([43.7009, 7.2683], 4);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
-map.on('click', ({latlng:{lat,lng}}) => { spinTo(lat, lng); });
+// ---------- Mini-carte Leaflet incrustée ----------
+const miniMap = L.map('miniMap').setView([0, 0], 2);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19, attribution: '&copy; OpenStreetMap'
+}).addTo(miniMap);
+
+// Clic carte → orienter le globe
+miniMap.on('click', ({latlng:{lat,lng}}) => spinTo(lat, lng));
 
 // UI
 document.getElementById('goTo').addEventListener('click', () => {
   const lat = parseFloat(document.getElementById('lat').value);
   const lon = parseFloat(document.getElementById('lon').value);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-  spinTo(lat, lon); map.setView([lat, lon], 6);
+  spinTo(lat, lon); miniMap.setView([lat, lon], 5);
 });
 document.getElementById('toMyPos').addEventListener('click', () => {
   if (!('geolocation' in navigator)) return;
@@ -117,37 +143,42 @@ document.getElementById('toMyPos').addEventListener('click', () => {
     const { latitude, longitude } = pos.coords;
     userMarker.position.copy(latLonToVector3(latitude, longitude, R, 0.03));
     userMarker.visible = true;
-    spinTo(latitude, longitude); map.setView([latitude, longitude], 8);
+    spinTo(latitude, longitude); miniMap.setView([latitude, longitude], 6);
   });
 });
 
-// Données : Europe (restcountries) ou villes voisines
+// Datasets : points Europe (restcountries) ou voisins
 const sel = document.getElementById('dataset');
 
 function loadNeighbors(){
-  clearGroup(markersGroup);
+  pointsData.length = 0;
   [
-    { name:'Nice', lat:43.7009, lon:7.2683, flag:'https://flagcdn.com/w20/fr.png' },
-    { name:'Marseille', lat:43.2965, lon:5.3698, flag:'https://flagcdn.com/w20/fr.png' },
-    { name:'Milan', lat:45.4642, lon:9.19,   flag:'https://flagcdn.com/w20/it.png' },
-  ].forEach(i => createFlagMarker(i.lat, i.lon, i.flag, i.name));
+    { name:'Nice',      lat:43.7009, lon:7.2683,  color:'#7dd3fc' },
+    { name:'Marseille', lat:43.2965, lon:5.3698,  color:'#86efac' },
+    { name:'Milan',     lat:45.4642, lon:9.19,    color:'#fca5a5' },
+  ].forEach(p => pointsData.push(p));
+  buildPoints(pointsData);
 }
 
 async function loadEurope(){
-  clearGroup(markersGroup);
-  const res = await fetch('https://restcountries.com/v3.1/region/europe?fields=name,latlng,flags');
+  pointsData.length = 0;
+  const res = await fetch('https://restcountries.com/v3.1/region/europe?fields=name,latlng');
   const countries = await res.json();
-  countries.forEach(c => {
+  countries.forEach((c,i) => {
     const [lat, lon] = c.latlng || [0,0];
-    const flag = (c.flags && (c.flags.png || c.flags.svg)) || '';
-    createFlagMarker(lat, lon, flag, c.name?.common || 'Pays');
+    // palette douce
+    const palette = ['#f87171','#fb923c','#fbbf24','#34d399','#60a5fa','#a78bfa','#f472b6'];
+    pointsData.push({ lat, lon, color: palette[i % palette.length], name: c.name?.common });
   });
+  buildPoints(pointsData);
 }
 
-sel.addEventListener('change', () => sel.value === 'neighbors' ? loadNeighbors() : loadEurope());
-loadNeighbors();
+sel.addEventListener('change', () =>
+  sel.value === 'neighbors' ? loadNeighbors() : loadEurope()
+);
+loadEurope(); // par défaut : beaucoup de points
 
-// Géoloc continue → met à jour le marqueur
+// Géoloc continue : met à jour le point utilisateur
 if ('geolocation' in navigator) {
   navigator.geolocation.watchPosition(pos => {
     const { latitude, longitude } = pos.coords;
