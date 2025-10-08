@@ -36,14 +36,15 @@
   </div>
   <div id="credits">r180 • GLTF + HDRI • pluie/particules • capteurs • GUI • ombres</div>
 
+  <!-- Import ESM via jsDelivr (évite les CORS/404 de esm.sh/unpkg chez toi) -->
   <script type="module">
-    import * as THREE from "https://esm.sh/three@0.180.0";
-    import { OrbitControls } from "https://esm.sh/three@0.180.0/examples/jsm/controls/OrbitControls.js";
-    import { DeviceOrientationControls } from "https://esm.sh/three@0.180.0/examples/jsm/controls/DeviceOrientationControls.js";
-    import { GLTFLoader } from "https://esm.sh/three@0.180.0/examples/jsm/loaders/GLTFLoader.js";
-    import { RGBELoader } from "https://esm.sh/three@0.180.0/examples/jsm/loaders/RGBELoader.js";
-    import Stats from "https://esm.sh/three@0.180.0/examples/jsm/libs/stats.module.js";
-    import { GUI } from "https://esm.sh/lil-gui@0.19";
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+    import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js";
+    import { DeviceOrientationControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/DeviceOrientationControls.js";
+    import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js";
+    import { RGBELoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/RGBELoader.js";
+    import Stats from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/libs/stats.module.js";
+    import { GUI } from "https://cdn.jsdelivr.net/npm/lil-gui@0.19/dist/lil-gui.esm.js";
 
     // --- Setup de base ---
     const container = document.getElementById('app');
@@ -60,18 +61,24 @@
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0b0d12);
 
+    // Helpers visuels (smoke test) — on voit tout de suite quelque chose
+    scene.add(new THREE.AxesHelper(1.5));
+    const grid = new THREE.GridHelper(80, 80, 0x3355aa, 0x223355);
+    grid.position.y = -1.2;
+    scene.add(grid);
+
     // Fog paramétrable
     const fog = new THREE.FogExp2(0x0e111a, 0.025);
-    let fogEnabled = false;
 
     const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 2000);
     camera.position.set(4.5, 2.4, 6.5);
+    camera.lookAt(0,0,0);
 
     // Lumières
-    const hemi = new THREE.HemisphereLight(0xbfd3ff, 0x22222a, 0.6);
+    const hemi = new THREE.HemisphereLight(0xbfd3ff, 0x22222a, 0.8);
     scene.add(hemi);
 
-    const dir = new THREE.DirectionalLight(0xffffff, 1.15);
+    const dir = new THREE.DirectionalLight(0xffffff, 1.35);
     dir.position.set(6, 8, 4);
     dir.castShadow = true;
     dir.shadow.mapSize.set(2048, 2048);
@@ -85,7 +92,7 @@
 
     // Sol
     const floorGeo = new THREE.PlaneGeometry(80, 80);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1b2131, roughness: 0.95, metalness: 0.0 });
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e2638, roughness: 0.9, metalness: 0.0 });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI/2;
     floor.position.y = -1.2;
@@ -114,7 +121,6 @@
     gui.add(params, "rotationSpeed", 0, 2, 0.01).name("Vitesse rotation");
     gui.add(params, "rain").name("Pluie");
     gui.add(params, "fog").name("Brouillard").onChange(v => {
-      fogEnabled = v;
       scene.fog = v ? fog : null;
     });
     gui.add(params, "envIntensity", 0, 2, 0.01).name("Intensité HDRI");
@@ -125,11 +131,15 @@
     const pmrem = new THREE.PMREMGenerator(renderer);
     new RGBELoader()
       .setPath("https://threejs.org/examples/textures/equirectangular/")
-      .load("royal_esplanade_1k.hdr", (hdrTex) => {
-        const envMap = pmrem.fromEquirectangular(hdrTex).texture;
-        scene.environment = envMap;
-        hdrTex.dispose();
-      });
+      .load("royal_esplanade_1k.hdr",
+        (hdrTex) => {
+          const envMap = pmrem.fromEquirectangular(hdrTex).texture;
+          scene.environment = envMap;
+          hdrTex.dispose();
+        },
+        undefined,
+        (err)=>console.warn("HDRI non chargée (ok sans) :", err)
+      );
 
     // Objet générique texturé (cube)
     const tex = new THREE.TextureLoader().load("https://threejs.org/examples/textures/uv_grid_opengl.jpg");
@@ -145,7 +155,6 @@
 
     // Chargement modèle GLTF (Damaged Helmet)
     const gltfLoader = new GLTFLoader();
-    // NB: modèle en ligne fiable; évite d’avoir à gérer les fichiers localement
     const MODEL_URL = "https://rawcdn.githack.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb";
     let helmet = null;
     gltfLoader.load(MODEL_URL, (gltf) => {
@@ -154,7 +163,7 @@
       helmet.scale.setScalar(1.8);
       helmet.position.set(1.8, -0.4, 0);
       scene.add(helmet);
-    });
+    }, undefined, (err)=>console.warn("GLTF non chargé :", err));
 
     // Pluie (particules)
     let rain, rainPositions, rainVel;
@@ -187,18 +196,14 @@
     const clock = new THREE.Clock();
     function animate() {
       const dt = Math.min(clock.getDelta(), 0.033);
-      const t = clock.elapsedTime;
 
-      // Cube qui tourne
       box.rotation.y += dt * params.rotationSpeed;
       box.rotation.x += dt * 0.3 * params.rotationSpeed;
 
-      // Rotation douce du modèle GLTF
       if (helmet && params.modelAutoRotate) {
         helmet.rotation.y += dt * 0.5;
       }
 
-      // Met à jour pluie
       if (rain) {
         const arr = rainPositions;
         for (let i=0; i<rainVel.length; i++) {
@@ -213,10 +218,7 @@
         rain.visible = params.rain;
       }
 
-      // Contrôles
       orbit.update();
-
-      // HDRI intensité
       if (scene.environment) {
         scene.traverse(o => { if (o.material && 'envMapIntensity' in o.material) o.material.envMapIntensity = params.envIntensity; });
       }
@@ -228,18 +230,19 @@
     animate();
 
     // Capteurs (DeviceOrientation)
-    let usingOrientation = false;
+    let orientationEnabled = false;
     function useOrientationControls() {
-      if (orientationControls) return;
-      orientationControls = new DeviceOrientationControls(camera);
-      usingOrientation = true;
+      if (!orientationEnabled) {
+        new DeviceOrientationControls(camera);
+        orientationEnabled = true;
+      }
     }
     async function requestSensorPermission() {
       const hasIOS = typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function";
       try {
         if (hasIOS) {
           const state = await DeviceOrientationEvent.requestPermission();
-          if (state !== "granted") { alert("Permission refusée"); return; }
+          if (state !== "granted") { alert("Permission capteurs refusée"); return; }
         }
         useOrientationControls();
       } catch(err) {
@@ -250,8 +253,8 @@
 
     // Boutons HUD
     document.getElementById("btn-permission").addEventListener("click", requestSensorPermission);
-    document.getElementById("btn-orbit").addEventListener("click", () => { usingOrientation = false; orientationControls = null; });
-    document.getElementById("btn-orientation").addEventListener("click", () => { useOrientationControls(); usingOrientation = true; });
+    document.getElementById("btn-orbit").addEventListener("click", () => { orientationEnabled = false; });
+    document.getElementById("btn-orientation").addEventListener("click", () => { useOrientationControls(); });
     document.getElementById("btn-toggle-rain").addEventListener("click", ()=> params.rain = !params.rain);
     document.getElementById("btn-toggle-fog").addEventListener("click", ()=> { params.fog = !params.fog; scene.fog = params.fog ? fog : null; });
     document.getElementById("btn-snap").addEventListener("click", () => {

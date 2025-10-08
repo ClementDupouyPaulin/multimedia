@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Multimédia — Choix du TP</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>TD3 — 3D, Géolocalisation & AR</title>
   <meta name="color-scheme" content="dark light" />
   <style>
     :root{
@@ -19,14 +19,14 @@
                   var(--bg);
       color:var(--fg);
     }
-    header{max-width:1100px;margin:48px auto 12px;padding:0 16px}
-    h1{margin:0 0 6px;font-size:clamp(24px,3.3vw,40px);letter-spacing:.2px}
-    .hint{color:var(--muted);font-size:14px}
-    main{max-width:1100px;margin:18px auto;padding:0 16px 40px}
-    .grid{
-      display:grid; gap:18px;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    }
+    header, main, footer{max-width:1100px;margin:0 auto;padding:0 16px}
+    header{margin-top:48px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    h1{margin:0;font-size:clamp(24px,3.3vw,40px);letter-spacing:.2px}
+    .back{color:var(--accent);text-decoration:none;font-weight:600}
+    .back:hover{text-decoration:underline}
+    .hint{color:var(--muted);font-size:14px;margin-top:6px}
+    main{margin-top:18px;margin-bottom:40px}
+    .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
     .card{
       background: rgba(18,24,38,.85); border:1px solid rgba(255,255,255,.08);
       border-radius:16px; padding:20px; backdrop-filter: blur(6px);
@@ -38,37 +38,34 @@
       display:inline-flex; align-items:center; gap:8px;
       background:var(--panel); color:var(--fg); border:1px solid rgba(255,255,255,.12);
       padding:10px 14px; border-radius:999px; text-decoration:none; font-weight:600;
-      box-shadow: inset 0 0 0 1px transparent; transition: .18s;
+      box-shadow: inset 0 0 0 1px transparent; transition:.18s;
     }
-    .btn:hover{ transform: translateY(-1px); border-color:var(--accent); box-shadow: 0 6px 18px var(--ring); }
-    footer{max-width:1100px;margin:16px auto 40px;padding:0 16px;color:var(--muted);font-size:13px}
+    .btn:hover{transform:translateY(-1px); border-color:var(--accent); box-shadow:0 6px 18px var(--ring)}
+    footer{color:var(--muted);font-size:13px;margin-bottom:40px}
     code{background:#0f1522;border:1px solid rgba(255,255,255,.08);padding:2px 6px;border-radius:6px}
   </style>
 </head>
 <body>
   <header>
-    <h1>TD • Multimédia</h1>
-    <div class="hint">Choisis un TP ci-dessous. Astuce : ouvre ces pages via <code>https</code> (GitHub Pages) ou via un serveur local.</div>
+    <div>
+      <h1>TD3 • 3D, Géolocalisation & AR</h1>
+      <div class="hint">Ouvre ces pages via <code>https</code> (GitHub Pages) ou un serveur local.</div>
+    </div>
+    <a class="back" href="../index.html" aria-label="Retour à l'accueil">← Retour</a>
   </header>
 
   <main>
     <div class="grid">
       <section class="card">
-        <h2>TP1 — Géolocalisation &amp; Leaflet</h2>
-        <p>API de géolocalisation, carte OpenStreetMap, marqueurs &amp; extras.</p>
-        <a class="btn" href="./TD1/" aria-label="Ouvrir TP1">Ouvrir TP1 →</a>
+        <h2>Exercice 1 — Terre 3D + Leaflet</h2>
+        <p>Terre texturée (Three.js), conversion lat/lon→XYZ, géoloc utilisateur, drapeaux pays, interactions carte ⇄ 3D.</p>
+        <a class="btn" href="./ex1/" aria-label="Ouvrir l'exercice 1">Ouvrir Exo 1 →</a>
       </section>
 
       <section class="card">
-        <h2>TP2 — Sensibilisation Multimédia</h2>
-        <p>Scènes 3D (Three.js &amp; Babylon.js), capteurs mobile, particules, ombres, etc.</p>
-        <a class="btn" href="./TD2/" aria-label="Ouvrir TP2">Ouvrir TP2 →</a>
-      </section>
-
-      <section class="card">
-        <h2>TP3 — 3D, Géolocalisation &amp; AR</h2>
-        <p>Terre 3D (Three.js) + interactions Leaflet, puis caméra + orientation/POI (HUD/AR).</p>
-        <a class="btn" href="./TD3/" aria-label="Ouvrir TP3">Ouvrir TP3 →</a>
+        <h2>Exercice 2 — Objets géolocalisés dans la caméra</h2>
+        <p>Flux caméra + orientation + géoloc, HUD affichant des POI quand tu pointes le téléphone (bearing + Haversine).</p>
+        <a class="btn" href="./ex2/" aria-label="Ouvrir l'exercice 2">Ouvrir Exo 2 →</a>
       </section>
     </div>
   </main>

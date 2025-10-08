@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>TD3 — Exercice 2 : AR (caméra + géoloc)</title>
+  <link rel="stylesheet" href="../../style.css"/>
+  <style>
+    #wrap { position: relative; width: 100%; max-width: 900px; margin: 0 auto; }
+    video { width: 100%; border-radius: 16px; background:#000; }
+    canvas#hud { position:absolute; inset:0; pointer-events:none; }
+    .controls { margin-top:.75rem; display:flex; flex-wrap:wrap; gap:.5rem; }
+    .controls input, .controls button { padding:.5rem .7rem; border-radius:10px; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.06); color:#eaeef9 }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Exercice 2 · Objets géolocalisés dans la caméra</h1>
+      <a href="../index.html">← Retour</a>
+    </header>
+
+    <div id="wrap">
+      <video id="cam" autoplay playsinline muted></video>
+      <canvas id="hud"></canvas>
+    </div>
+
+    <div class="controls">
+      <button id="askPerm">Autoriser l’orientation (iOS)</button>
+      <button id="useBack">Caméra arrière</button>
+      <button id="useFront">Caméra avant</button>
+      <span id="status" class="small">En attente capteurs…</span>
+    </div>
+
+    <p class="small">Démo : le réticule apparaît au centre. Les POI (Nice, Marseille) s’affichent quand vous pointez votre téléphone dans leur direction (±15°). Distance calculée via Haversine.</p>
+    <p class="small">Pour aller plus loin : intégrer AR.js “location-based”.</p>
+  </div>
+
+  <script type="module" src="./script.js"></script>
+</body>
+</html>
