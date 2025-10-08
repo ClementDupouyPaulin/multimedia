@@ -3,26 +3,31 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>TD3 — Exercice 1 : Terre 3D + Leaflet</title>
-  <link rel="stylesheet" href="../../style.css"/>
+  <title>TD3 — Ex1 : Terre 3D + Leaflet</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <style>
-    .layout { display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    @media (max-width: 900px){ .layout{ grid-template-columns: 1fr; } }
-    #globe { width: 100%; height: 70vh; background:#0d1220; border-radius: 16px; }
-    #map { width: 100%; height: 70vh; border-radius: 16px; }
-    .panel { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.5rem }
-    .panel input, .panel button, .panel select { padding:.4rem .6rem; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.05); color:#eaeef9 }
+    body{margin:0;background:#0b0f16;color:#e9ecf1;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:1200px;margin:24px auto;padding:0 16px}
+    header{display:flex;justify-content:space-between;align-items:center}
+    a{color:#5ea0ff;text-decoration:none}
+    a:hover{text-decoration:underline}
+    .grid{display:grid;gap:14px;grid-template-columns:1fr 1fr}
+    @media (max-width:900px){.grid{grid-template-columns:1fr}}
+    #globe{height:70vh;border-radius:16px;background:#0d1220}
+    #map{height:70vh;border-radius:16px}
+    .panel{display:flex;gap:.5rem;flex-wrap:wrap;margin:.6rem 0}
+    .panel input,.panel button,.panel select{padding:.4rem .6rem;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#e9ecf1}
+    .hint{opacity:.7;font-size:14px;margin-top:8px}
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="wrap">
     <header>
       <h1>Exercice 1 · Terre 3D + Leaflet</h1>
-      <a href="../index.html">← Retour</a>
+      <a href="../">← Retour</a>
     </header>
 
-    <div class="layout">
+    <div class="grid">
       <div>
         <div id="globe"></div>
         <div class="panel">
@@ -33,14 +38,13 @@
           <button id="goTo">Go</button>
           <select id="dataset">
             <option value="europe">Pays d'Europe</option>
-            <option value="neighbors">Villes voisines (Nice/Marseille/Milan)</option>
+            <option value="neighbors">Villes voisines</option>
           </select>
         </div>
+        <div class="hint">Cliquez la carte → le globe s’oriente. Cliquez un drapeau sur le globe → la carte se recentre.</div>
       </div>
       <div id="map"></div>
     </div>
-
-    <p class="small">Cliquez un drapeau sur le globe → la carte se recentre. Cliquez la carte → le globe tourne vers l’endroit.</p>
   </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>

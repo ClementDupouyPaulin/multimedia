@@ -1,4 +1,3 @@
-// TD3 — Exo 2: flux caméra + géoloc + orientation + POI directionnels (HUD 2D)
 const video = document.getElementById('cam');
 const hud = document.getElementById('hud');
 const ctx = hud.getContext('2d');
@@ -10,48 +9,61 @@ const POIS = [
 ];
 
 function resize(){
-  const rect = video.getBoundingClientRect();
-  hud.width = Math.floor(rect.width);
-  hud.height = Math.floor(rect.height);
+  const r = video.getBoundingClientRect();
+  hud.width = Math.max(1, Math.floor(r.width));
+  hud.height = Math.max(1, Math.floor(r.height));
 }
 addEventListener('resize', resize);
 
-// Camera helpers
+// --- Caméra ---
 let currentStream;
 async function startCamera(facingMode='environment'){
-  if (currentStream) currentStream.getTracks().forEach(t => t.stop());
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode, width: {ideal:1280}, height:{ideal:720} }, audio:false
-  });
-  video.srcObject = stream;
-  currentStream = stream;
-  await video.play();
-  resize();
+  try{
+    if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode, width:{ideal:1280}, height:{ideal:720} }, audio:false
+    });
+    video.srcObject = stream;
+    currentStream = stream;
+    await video.play();
+    resize();
+  }catch(e){
+    console.error(e);
+    statusEl.textContent = 'Caméra indisponible : ' + e.message;
+  }
 }
 document.getElementById('useBack').onclick = () => startCamera('environment');
 document.getElementById('useFront').onclick = () => startCamera('user');
 
-// Orientation / heading
-let heading = 0; // en degrés 0..360 (0 = nord)
-let pitch = 0;   // -90..90
-let roll = 0;
+// --- Orientation (heading/pitch/roll) ---
+let heading = 0, pitch = 0, roll = 0;
 
 function handleOrientation(e){
-  heading = (e.alpha || 0);
+  // iOS : webkitCompassHeading (0 = nord, croissant horaire)
+  if (typeof e.webkitCompassHeading === 'number'){
+    heading = e.webkitCompassHeading;
+  } else {
+    // alpha:0..360 (vers le nord magnétique aproximatif)
+    heading = (e.alpha || 0);
+  }
   pitch = (e.beta || 0);
   roll = (e.gamma || 0);
 }
 if (window.DeviceOrientationEvent) {
-  window.addEventListener('deviceorientation', handleOrientation);
+  window.addEventListener('deviceorientation', handleOrientation, true);
 }
 document.getElementById('askPerm').onclick = async () => {
   if (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission) {
-    const r = await DeviceOrientationEvent.requestPermission();
-    statusEl.textContent = 'Orientation: ' + r;
+    try{
+      const r = await DeviceOrientationEvent.requestPermission();
+      statusEl.textContent = 'Orientation: ' + r;
+    }catch(e){
+      statusEl.textContent = 'Orientation refusée';
+    }
   }
 };
 
-// Geolocation
+// --- Géolocalisation ---
 let userLat = null, userLon = null, accuracy = null;
 function onPos(pos){
   userLat = pos.coords.latitude;
@@ -60,10 +72,10 @@ function onPos(pos){
 }
 function onErr(err){ console.warn(err); statusEl.textContent = 'Géoloc indisponible (HTTPS ? autorisations ?)'; }
 if ('geolocation' in navigator) {
-  navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy:true, maximumAge: 2000, timeout: 10000 });
+  navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy:true, maximumAge:2000, timeout:10000 });
 }
 
-// Haversine + bearing
+// --- Utils : Haversine + bearing ---
 function haversine(lat1, lon1, lat2, lon2) {
   const R = 6371000;
   const toRad = d => d * Math.PI / 180;
@@ -80,45 +92,45 @@ function bearing(lat1, lon1, lat2, lon2){
   return (brng + 360) % 360;
 }
 
-// HUD render
+// --- HUD ---
 function draw(){
   requestAnimationFrame(draw);
   if (!video.videoWidth) return;
-  ctx.clearRect(0,0,hud.width, hud.height);
 
-  // Réticule centre
+  ctx.clearRect(0,0,hud.width,hud.height);
+
+  const cx = hud.width/2, cy = hud.height/2;
+
+  // réticule
   ctx.lineWidth = 2;
   ctx.strokeStyle = 'white';
-  const cx = hud.width/2, cy = hud.height/2;
   ctx.beginPath(); ctx.arc(cx, cy, 20, 0, Math.PI*2); ctx.stroke();
 
   if (userLat==null || userLon==null) return;
 
-  // Pour chaque POI : si dans cône ±15° autour du heading, afficher
-  const FOV = 30; // champ ±15°
+  const FOV = 30; // ±15°
   POIS.forEach(p => {
     const br = bearing(userLat, userLon, p.lat, p.lon);
-    let diff = ((br - heading + 540) % 360) - 180; // diff signé [-180,180]
+    let diff = ((br - heading + 540) % 360) - 180; // [-180,180]
     const dist = haversine(userLat, userLon, p.lat, p.lon);
 
-    // Position horizontale (mapping simple)
-    const maxOffset = hud.width/2 - 40;
-    const x = cx + (diff / (FOV/2)) * maxOffset;
-
     if (Math.abs(diff) <= FOV/2){
-      ctx.fillStyle = 'rgba(0,0,0,.4)';
+      const maxOffset = hud.width/2 - 40;
+      const x = cx + (diff / (FOV/2)) * maxOffset;
+
+      ctx.fillStyle = 'rgba(0,0,0,.45)';
       ctx.strokeStyle = 'white';
-      ctx.fillRect(x-60, cy-80, 120, 46);
-      ctx.strokeRect(x-60, cy-80, 120, 46);
+      ctx.fillRect(x-60, cy-84, 120, 50);
+      ctx.strokeRect(x-60, cy-84, 120, 50);
       ctx.fillStyle = 'white';
       ctx.font = '14px ui-sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(p.name, x, cy-60);
+      ctx.fillText(p.name, x, cy-62);
       ctx.fillText((dist/1000).toFixed(1)+' km', x, cy-44);
     }
   });
 
-  // Stats
+  // stats
   ctx.fillStyle = 'white';
   ctx.textAlign = 'left';
   ctx.font = '12px ui-sans-serif';
@@ -127,5 +139,5 @@ function draw(){
 }
 draw();
 
-// Start defaults
-startCamera('environment').catch(err => { console.error(err); statusEl.textContent = 'Caméra indisponible: ' + err.message; });
+// démarrage
+startCamera('environment');

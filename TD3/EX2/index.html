@@ -3,24 +3,28 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>TD3 — Exercice 2 : AR (caméra + géoloc)</title>
-  <link rel="stylesheet" href="../../style.css"/>
+  <title>TD3 — Ex2 : Caméra + géoloc + orientation</title>
   <style>
-    #wrap { position: relative; width: 100%; max-width: 900px; margin: 0 auto; }
-    video { width: 100%; border-radius: 16px; background:#000; }
-    canvas#hud { position:absolute; inset:0; pointer-events:none; }
-    .controls { margin-top:.75rem; display:flex; flex-wrap:wrap; gap:.5rem; }
-    .controls input, .controls button { padding:.5rem .7rem; border-radius:10px; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.06); color:#eaeef9 }
+    body{margin:0;background:#0b0f16;color:#e9ecf1;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:900px;margin:24px auto;padding:0 16px}
+    header{display:flex;justify-content:space-between;align-items:center}
+    a{color:#5ea0ff;text-decoration:none} a:hover{text-decoration:underline}
+    #stage{position:relative}
+    video{width:100%;background:#000;border-radius:16px}
+    canvas#hud{position:absolute;inset:0;pointer-events:none}
+    .controls{margin:.75rem 0;display:flex;gap:.5rem;flex-wrap:wrap}
+    .controls button{padding:.5rem .7rem;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#e9ecf1}
+    .hint{opacity:.75;font-size:14px}
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="wrap">
     <header>
       <h1>Exercice 2 · Objets géolocalisés dans la caméra</h1>
-      <a href="../index.html">← Retour</a>
+      <a href="../">← Retour</a>
     </header>
 
-    <div id="wrap">
+    <div id="stage">
       <video id="cam" autoplay playsinline muted></video>
       <canvas id="hud"></canvas>
     </div>
@@ -29,11 +33,10 @@
       <button id="askPerm">Autoriser l’orientation (iOS)</button>
       <button id="useBack">Caméra arrière</button>
       <button id="useFront">Caméra avant</button>
-      <span id="status" class="small">En attente capteurs…</span>
+      <span id="status" class="hint">En attente capteurs…</span>
     </div>
 
-    <p class="small">Démo : le réticule apparaît au centre. Les POI (Nice, Marseille) s’affichent quand vous pointez votre téléphone dans leur direction (±15°). Distance calculée via Haversine.</p>
-    <p class="small">Pour aller plus loin : intégrer AR.js “location-based”.</p>
+    <p class="hint">Les POI (Nice, Marseille) s’affichent quand tu pointes le téléphone dans leur direction (±15°). Distance via Haversine. Pour aller plus loin : AR.js « location-based ».</p>
   </div>
 
   <script type="module" src="./script.js"></script>
