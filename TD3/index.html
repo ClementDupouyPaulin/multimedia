@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>TD3 — 3D, Géolocalisation & AR</title>
+  <title>TP4 — Assistant IA (PWA)</title>
   <meta name="color-scheme" content="dark light" />
   <style>
     :root{
@@ -48,8 +48,8 @@
 <body>
   <header>
     <div>
-      <h1>TD3 • 3D, Géolocalisation & AR</h1>
-      <div class="hint">Ouvre ces pages via <code>https</code> (GitHub Pages) ou un serveur local.</div>
+      <h1>TP4 • Assistant IA (PWA)</h1>
+      <div class="hint">Ouvre via <code>https</code> (GitHub Pages) ou un serveur local — caméra/capteurs exigent un contexte sécurisé.</div>
     </div>
     <a class="back" href="../index.html" aria-label="Retour à l'accueil">← Retour</a>
   </header>
@@ -57,15 +57,15 @@
   <main>
     <div class="grid">
       <section class="card">
-        <h2>Exercice 1 — Terre 3D + Leaflet</h2>
-        <p>Terre texturée (Three.js), conversion lat/lon→XYZ, géoloc utilisateur, drapeaux pays, interactions carte ⇄ 3D.</p>
-        <a class="btn" href="./EX1/" aria-label="Ouvrir l'exercice 1">Ouvrir Exo 1 →</a>
+        <h2>Application — Carte IA + Boussole 3D + Vision</h2>
+        <p>Carte contrôlée en langage naturel, géolocalisation, boussole 3D (capteurs), reconnaissance de lieux (ml5.js) et PWA hors-ligne.</p>
+        <a class="btn" href="./app.html" aria-label="Ouvrir l'application TP4">Ouvrir l’app TP4 →</a>
       </section>
 
       <section class="card">
-        <h2>Exercice 2 — Objets géolocalisés dans la caméra</h2>
-        <p>Flux caméra + orientation + géoloc, HUD affichant des POI quand tu pointes le téléphone (bearing + Haversine).</p>
-        <a class="btn" href="./EX2/" aria-label="Ouvrir l'exercice 2">Ouvrir Exo 2 →</a>
+        <h2>Astuce démo & permissions</h2>
+        <p>Sur mobile : autorise la caméra, la géolocalisation et (iOS) les capteurs via le bouton dédié. En cas de refus, passe par la saisie texte et le slider de la boussole.</p>
+        <a class="btn" href="https://github.com/tonrepo" target="_blank" rel="noreferrer">Voir le code</a>
       </section>
     </div>
   </main>
@@ -73,9 +73,9 @@
   <footer>
     <span id="stamp"></span>
     <script>
-      const d = new Date();
-      const fmt = d.toLocaleDateString('fr-FR', {year:'numeric',month:'short',day:'2-digit'});
-      document.getElementById('stamp').textContent = `Généré le ${fmt}`;
+      const d=new Date();
+      const fmt=d.toLocaleDateString('fr-FR',{year:'numeric',month:'short',day:'2-digit'});
+      document.getElementById('stamp').textContent=`Généré le ${fmt}`;
     </script>
   </footer>
 </body>
