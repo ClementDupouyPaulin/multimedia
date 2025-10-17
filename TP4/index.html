@@ -1,107 +1,146 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>TP4 — Assistant IA (PWA)</title>
-
-  <!-- PWA -->
-  <link rel="manifest" href="./manifest.webmanifest">
-  <meta name="theme-color" content="#0b0f16">
-  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
-
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <!-- ml5.js (TensorFlow.js) -->
-  <script defer src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
-
-  <link rel="stylesheet" href="./style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TP4 - TerraSentinel Explorer</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#123a42" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha512-sA+e2atG7tCw1YqGObgATJE0E7E5Wdl66iRS0LlwM651c01qmPvvrLpzjAUx0zG3KzB204jmcA1u6gktPMJd1w=="
+    crossorigin=""
+  />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://unpkg.com" crossorigin />
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <img src="./assets/icon.svg" alt="" width="28" height="28" aria-hidden="true">
-      <h1>Assistant Multimédia IA — TP4</h1>
-    </div>
-    <nav class="actions">
-      <a class="btn" href="../index.html">← Retour</a>
-      <button id="btnInstall" class="btn" hidden>Installer</button>
-    </nav>
+  <header class="app-header">
+    <h1>TerraSentinel Explorer</h1>
+    <p>Expédition durable assistée par IA : cartographie, boussole 3D et reconnaissance d'écosystèmes.</p>
+    <button id="installBtn" class="secondary" aria-live="polite">Installer l'application</button>
   </header>
 
-  <main class="layout">
-    <!-- Carte + commandes IA -->
-    <section class="panel">
-      <h2>Carte interactive (IA)</h2>
-      <div class="cmdbar" role="group" aria-label="Commandes en langage naturel">
-        <button id="btnMic" class="btn" aria-label="Parler (commande vocale)">🎤</button>
-        <input id="cmdInput" class="input" placeholder='Ex: "va à Nice", "ajoute un marqueur ici", "bascule satellite"' aria-label="Saisir une commande"/>
-        <button id="btnRun" class="btn">Exécuter</button>
-        <button id="btnLocate" class="btn">Me localiser</button>
+  <main>
+    <section class="panel" aria-labelledby="map-section-title">
+      <div class="panel-header">
+        <h2 id="map-section-title">Carte interactive</h2>
+        <div class="controls">
+          <label for="commandInput">Commande IA</label>
+          <div class="command-group">
+            <input id="commandInput" type="text" placeholder="Ex. va à Montréal, zoom x2, affiche refuges verts..." aria-describedby="commandHelp" />
+            <button id="voiceBtn" aria-label="Dicter une commande">🎙️</button>
+            <button id="runCommandBtn">Envoyer</button>
+          </div>
+          <p id="commandHelp" class="sr-only">Saisissez une instruction en français ou utilisez la dictée vocale si disponible.</p>
+        </div>
       </div>
-      <div id="map" class="map" role="application" aria-label="Carte interactive"></div>
-      <p class="hint">Exemples : “va à [lieu]”, “zoome x2”, “dézoome”, “ajoute un marqueur Maison ici”, “itinéraire jusqu’à Paris”, “affiche monuments proches”, “bascule satellite”.</p>
+      <div class="map-wrapper">
+        <div id="map" role="application" aria-label="Carte de l'exploration TerraSentinel"></div>
+        <aside class="map-feedback" aria-live="polite" aria-atomic="true">
+          <p id="mapStatus">Prêt à recevoir des commandes.</p>
+          <button id="locateBtn" class="secondary">Me localiser</button>
+        </aside>
+      </div>
+      <div class="suggestions" aria-live="polite" aria-atomic="true">
+        <h3>Suggestions IA</h3>
+        <ul id="suggestionsList"></ul>
+      </div>
     </section>
 
-    <!-- Boussole 3D -->
-    <section class="panel">
-      <h2>Boussole 3D</h2>
-      <div class="row">
-        <button id="btnIOS" class="btn secondary">Autoriser capteurs (iOS)</button>
-        <label class="small">Repli manuel :
-          <input id="hdgSlider" type="range" min="0" max="359" value="0" aria-label="Orientation manuelle (degrés)">
-          <span id="hdgValue" class="tag">0°</span>
-        </label>
+    <section class="panel" aria-labelledby="compass-title">
+      <div class="panel-header">
+        <h2 id="compass-title">Boussole 3D</h2>
+        <p>Suivez la direction de vos missions écologiques.</p>
       </div>
-      <div id="compass3d" class="gl"></div>
+      <div class="compass-container">
+        <div id="compassCanvas" class="webgl-holder" role="img" aria-label="Boussole 3D"></div>
+        <div class="compass-controls">
+          <button id="enableOrientationBtn" class="primary">Activer les capteurs</button>
+          <label for="fallbackHeading">Mode manuel</label>
+          <input id="fallbackHeading" type="range" min="0" max="360" value="0" />
+          <output id="headingValue" for="fallbackHeading">0°</output>
+          <p class="hint">Sur iOS, autorisez le suivi de mouvement (Paramètres &gt; Safari &gt; Motion &amp; Orientation).</p>
+        </div>
+      </div>
     </section>
 
-    <!-- Vision: caméra + reconnaissance -->
-    <section class="panel">
-      <h2>Reconnaissance de lieux (caméra)</h2>
-      <div class="row">
-        <button id="btnCamBack" class="btn">Caméra arrière</button>
-        <button id="btnCamFront" class="btn">Caméra avant</button>
-        <span id="visionStatus" class="tag">Modèle: en cours…</span>
+    <section class="panel" aria-labelledby="vision-title">
+      <div class="panel-header">
+        <h2 id="vision-title">Reconnaissance d'écosystème</h2>
+        <p>Identifiez les habitats emblématiques et obtenez des ressources pédagogiques.</p>
       </div>
-
-      <div class="visionStage">
-        <video id="video" playsinline autoplay muted></video>
-        <canvas id="overlay"></canvas>
+      <div class="vision-grid">
+        <figure class="vision-stream">
+          <video id="videoFeed" autoplay playsinline muted aria-label="Flux vidéo pour la reconnaissance"></video>
+          <figcaption>
+            <button id="startVisionBtn" class="primary">Activer la caméra</button>
+            <button id="stopVisionBtn" class="secondary">Arrêter</button>
+            <p id="visionStatus" aria-live="polite">Caméra inactive.</p>
+          </figcaption>
+        </figure>
+        <div class="vision-output">
+          <h3>Résultats</h3>
+          <p id="visionLabel">Aucun lieu détecté pour l'instant.</p>
+          <div id="visionConfidence" class="confidence-bar" role="img" aria-label="Niveau de confiance"></div>
+          <div id="recognitionActions" class="recognition-actions" hidden>
+            <div id="threeContainer" class="webgl-holder" role="img" aria-label="Modèle 3D"></div>
+            <img id="fallbackImage" alt="Illustration du lieu reconnu" hidden />
+            <a id="wikiLink" href="#" target="_blank" rel="noopener" class="primary">Lire sur Wikipédia</a>
+          </div>
+        </div>
       </div>
-
-      <div class="row">
-        <label class="small">Démo manuelle :
-          <select id="demoSelect">
-            <option value="">— choisir —</option>
-            <option value="eiffel_tower">Tour Eiffel</option>
-            <option value="colosseum">Colisée</option>
-            <option value="statue_of_liberty">Statue de la Liberté</option>
-          </select>
-        </label>
-        <button id="btnTriggerDemo" class="btn secondary">Déclencher</button>
-      </div>
-
-      <div id="result3d" class="gl smallgl" aria-label="Espace d’affichage modèle 3D / photo"></div>
-      <div id="wikiLink" class="hint"></div>
     </section>
   </main>
 
-  <div id="toasts" aria-live="polite" aria-atomic="true"></div>
+  <section class="panel" aria-labelledby="howto-title">
+    <div class="panel-header">
+      <h2 id="howto-title">Guide rapide</h2>
+    </div>
+    <div class="guide-grid">
+      <article>
+        <h3>Commandes IA</h3>
+        <ul>
+          <li><kbd>va à &lt;lieu&gt;</kbd> : se déplacer sur la carte.</li>
+          <li><kbd>zoome x2</kbd> ou <kbd>dézoome</kbd>.</li>
+          <li><kbd>itinéraire jusqu'à &lt;adresse&gt;</kbd> : suggère un itinéraire pédestre.</li>
+          <li><kbd>affiche sanctuaires proches</kbd> : découvre des POI écologiques.</li>
+          <li><kbd>ajoute un marqueur &lt;nom&gt; ici</kbd> : mémorise un site.</li>
+        </ul>
+      </article>
+      <article>
+        <h3>Reconnaissance</h3>
+        <p>Utilise un modèle MobileNet pré-entraîné. Pour personnaliser :</p>
+        <ol>
+          <li>Crée un projet Teachable Machine (image).</li>
+          <li>Entraîne avec tes propres lieux (ex. forêts, récifs, dunes).</li>
+          <li>Export en modèle TensorFlow.js et remplace l'URL dans <code>vision.js</code>.</li>
+        </ol>
+      </article>
+      <article>
+        <h3>Boussole</h3>
+        <p>Autorise l'accès aux capteurs. Sinon, utilise le curseur manuel pour simuler l'orientation.</p>
+      </article>
+    </div>
+  </section>
 
-  <!-- modules -->
-  <script type="module" src="./ui.js"></script>
-  <script type="module" src="./app.js"></script>
-  <script type="module" src="./compass.js"></script>
-  <script type="module" src="./vision.js"></script>
+  <footer>
+    <p>© 2024 TerraSentinel – Prototype éducatif éco-responsable.</p>
+  </footer>
 
-  <script>
-    // Service worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./service-worker.js').catch(console.warn);
-    }
-  </script>
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha512-QV8t1rZbG32IOzBSSMSmc5QwDFi1Cdm42Hcps225y7sY9qsK0R12uglfL74m9IOYBhbR3vY9P7Anxr1j403r2w=="
+    crossorigin=""
+  ></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js" integrity="sha512-+QCMgfHdCqkfNNpJBbGAbIYW/W2PASi6DPd7OJbRRqtD9h5pz2jdK5Zk90un0nLBKBPXn1HULICwhf66A1Vpzw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/examples/js/loaders/GLTFLoader.min.js" integrity="sha512-Dv84yYI6FqdtYYdlcYNSeNBY0d5hDnzL2m30IZHuZOKhHvJ3C0cFLbFhF38N5EJ2VNivXzXcX4Jt9V7H5PHeSw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
+  <script type="module" src="app.js"></script>
+  <script type="module" src="ui.js"></script>
+  <script type="module" src="compass.js"></script>
+  <script type="module" src="vision.js"></script>
 </body>
 </html>
