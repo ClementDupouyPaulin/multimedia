@@ -1,9 +1,9 @@
 import { ui, toast } from './ui.js';
 
-const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.160.0';
+const THREE_CDN = 'https://cdn.jsdelivr.net/npm/three@0.160.0';
 const [{ default: THREE }, { OrbitControls }] = await Promise.all([
-  import(`${THREE_URL}/build/three.module.js`),
-  import(`${THREE_URL}/examples/jsm/controls/OrbitControls.js`)
+  import(`${THREE_CDN}/build/three.module.js`),
+  import(`${THREE_CDN}/examples/jsm/controls/OrbitControls.js`)
 ]);
 
 const container = document.getElementById('compass3d');
