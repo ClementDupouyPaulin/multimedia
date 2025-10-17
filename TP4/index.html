@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>TP4 — Assistant IA (PWA)</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#0b0f16">
+  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- ml5.js (TensorFlow.js) -->
+  <script defer src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
+
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="./assets/icon.svg" alt="" width="28" height="28" aria-hidden="true">
+      <h1>Assistant Multimédia IA — TP4</h1>
+    </div>
+    <nav class="actions">
+      <a class="btn" href="../index.html">← Retour</a>
+      <button id="btnInstall" class="btn" hidden>Installer</button>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <!-- Carte + commandes IA -->
+    <section class="panel">
+      <h2>Carte interactive (IA)</h2>
+      <div class="cmdbar" role="group" aria-label="Commandes en langage naturel">
+        <button id="btnMic" class="btn" aria-label="Parler (commande vocale)">🎤</button>
+        <input id="cmdInput" class="input" placeholder='Ex: "va à Nice", "ajoute un marqueur ici", "bascule satellite"' aria-label="Saisir une commande"/>
+        <button id="btnRun" class="btn">Exécuter</button>
+        <button id="btnLocate" class="btn">Me localiser</button>
+      </div>
+      <div id="map" class="map" role="application" aria-label="Carte interactive"></div>
+      <p class="hint">Exemples : “va à [lieu]”, “zoome x2”, “dézoome”, “ajoute un marqueur Maison ici”, “itinéraire jusqu’à Paris”, “affiche monuments proches”, “bascule satellite”.</p>
+    </section>
+
+    <!-- Boussole 3D -->
+    <section class="panel">
+      <h2>Boussole 3D</h2>
+      <div class="row">
+        <button id="btnIOS" class="btn secondary">Autoriser capteurs (iOS)</button>
+        <label class="small">Repli manuel :
+          <input id="hdgSlider" type="range" min="0" max="359" value="0" aria-label="Orientation manuelle (degrés)">
+          <span id="hdgValue" class="tag">0°</span>
+        </label>
+      </div>
+      <div id="compass3d" class="gl"></div>
+    </section>
+
+    <!-- Vision: caméra + reconnaissance -->
+    <section class="panel">
+      <h2>Reconnaissance de lieux (caméra)</h2>
+      <div class="row">
+        <button id="btnCamBack" class="btn">Caméra arrière</button>
+        <button id="btnCamFront" class="btn">Caméra avant</button>
+        <span id="visionStatus" class="tag">Modèle: en cours…</span>
+      </div>
+
+      <div class="visionStage">
+        <video id="video" playsinline autoplay muted></video>
+        <canvas id="overlay"></canvas>
+      </div>
+
+      <div class="row">
+        <label class="small">Démo manuelle :
+          <select id="demoSelect">
+            <option value="">— choisir —</option>
+            <option value="eiffel_tower">Tour Eiffel</option>
+            <option value="colosseum">Colisée</option>
+            <option value="statue_of_liberty">Statue de la Liberté</option>
+          </select>
+        </label>
+        <button id="btnTriggerDemo" class="btn secondary">Déclencher</button>
+      </div>
+
+      <div id="result3d" class="gl smallgl" aria-label="Espace d’affichage modèle 3D / photo"></div>
+      <div id="wikiLink" class="hint"></div>
+    </section>
+  </main>
+
+  <div id="toasts" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- modules -->
+  <script type="module" src="./ui.js"></script>
+  <script type="module" src="./app.js"></script>
+  <script type="module" src="./compass.js"></script>
+  <script type="module" src="./vision.js"></script>
+
+  <script>
+    // Service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js').catch(console.warn);
+    }
+  </script>
+</body>
+</html>
