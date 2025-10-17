@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">TerraSentinel Explorer Mini Icon</title>
+  <desc id="desc">Compact compass badge with teal gradient background.</desc>
+  <defs>
+    <linearGradient id="bg-mini" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#145361" />
+      <stop offset="100%" stop-color="#37d8c4" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg-mini)" rx="88" ry="88" />
+  <g fill="none" stroke="#eaf7f7" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="256" cy="256" r="152" fill="rgba(7, 27, 32, 0.35)" stroke="#cfeeed" />
+    <path d="M256 140l44 120-120 44 76-164z" fill="#ffd27f" stroke="#145361" />
+    <path d="M256 140l-44 120 120 44-76-164z" fill="#f76d5f" stroke="#145361" opacity="0.85" />
+    <circle cx="256" cy="256" r="32" fill="#ffffff" />
+  </g>
+  <path d="M256 408c-68 0-136-54-136-136 0-86 96-180 136-244 40 64 136 158 136 244 0 82-68 136-136 136z" fill="rgba(255,255,255,0.18)" />
+</svg>

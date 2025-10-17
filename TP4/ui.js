@@ -1,46 +1,103 @@
-export const bus = new EventTarget();
-const $ = (sel) => document.querySelector(sel);
+import { processCommand, updateStatus } from "./app.js";
 
-export function toast(msg, type='ok', timeout=2500){
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.textContent = msg;
-  $('#toasts').appendChild(t);
-  setTimeout(() => t.remove(), timeout);
-}
+const commandInput = document.getElementById("commandInput");
+const runCommandBtn = document.getElementById("runCommandBtn");
+const voiceBtn = document.getElementById("voiceBtn");
+const installBtn = document.getElementById("installBtn");
 
-// Web Speech (micro)
-let rec = null;
-const micBtn = $('#btnMic');
-if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  rec = new SR();
-  rec.lang = 'fr-FR';
-  rec.continuous = false; rec.interimResults = false;
-  rec.onresult = (e) => {
-    const txt = e.results?.[0]?.[0]?.transcript?.trim();
-    if (txt) {
-      $('#cmdInput').value = txt;
-      bus.dispatchEvent(new CustomEvent('nl-command', { detail:{ text: txt, origin:'voice' }}));
-    }
-  };
-  rec.onerror = () => toast('Micro: erreur/autorisation refusée', 'warn', 3000);
-  micBtn?.addEventListener('click', () => { try { rec.start(); toast('Parlez…', 'ok', 1200);} catch{} });
-} else {
-  micBtn?.setAttribute('disabled','true');
-  micBtn?.setAttribute('title','Web Speech non supporté');
-}
+let deferredPrompt = null;
+let recognition = null;
 
-// Bouton Exécuter
-$('#btnRun')?.addEventListener('click', () => {
-  const text = $('#cmdInput').value.trim();
-  if (text) bus.dispatchEvent(new CustomEvent('nl-command', { detail:{ text, origin:'text' }}));
+const initSpeechRecognition = () => {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    voiceBtn.disabled = true;
+    voiceBtn.title = "Dictée non supportée";
+    return;
+  }
+  recognition = new SpeechRecognition();
+  recognition.lang = "fr-FR";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.addEventListener("start", () => {
+    voiceBtn.classList.add("recording");
+    updateStatus("🎤 En écoute...");
+  });
+
+  recognition.addEventListener("end", () => {
+    voiceBtn.classList.remove("recording");
+    updateStatus("Fin de la dictée.");
+  });
+
+  recognition.addEventListener("result", (event) => {
+    const text = Array.from(event.results)
+      .map((result) => result[0].transcript)
+      .join(" ")
+      .trim();
+    commandInput.value = text;
+    processCommand(text);
+  });
+
+  recognition.addEventListener("error", (event) => {
+    updateStatus(`Dictée indisponible : ${event.error}`);
+  });
+};
+
+runCommandBtn?.addEventListener("click", () => {
+  processCommand(commandInput.value);
 });
 
-// PWA install
-let deferredPrompt = null;
-const btnInstall = $('#btnInstall');
-window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; btnInstall.hidden = false; });
-btnInstall?.addEventListener('click', async () => { btnInstall.hidden = true; if (deferredPrompt){ deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } });
+commandInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    processCommand(commandInput.value);
+  }
+});
 
-export const ui = { $, bus, toast };
+voiceBtn?.addEventListener("click", async () => {
+  if (!recognition) {
+    updateStatus("La reconnaissance vocale n'est pas supportée sur ce navigateur.");
+    return;
+  }
+  try {
+    recognition.start();
+  } catch (error) {
+    updateStatus(`Impossible de démarrer la dictée : ${error.message}`);
+  }
+});
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredPrompt = event;
+  installBtn.hidden = false;
+  installBtn.disabled = false;
+  installBtn.textContent = "Installer TerraSentinel";
+});
+
+installBtn?.addEventListener("click", async () => {
+  if (!deferredPrompt) {
+    updateStatus("L'installation n'est pas disponible actuellement.");
+    return;
+  }
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === "accepted") {
+    updateStatus("Merci ! Application en cours d'installation.");
+  } else {
+    updateStatus("Installation annulée.");
+  }
+  deferredPrompt = null;
+  installBtn.disabled = true;
+});
+
+window.addEventListener("appinstalled", () => {
+  installBtn.textContent = "Application installée";
+  installBtn.disabled = true;
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  initSpeechRecognition();
+  installBtn.hidden = true;
+  installBtn.disabled = true;
+});

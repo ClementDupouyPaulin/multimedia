@@ -1,11 +1,22 @@
 {
-  "name": "Assistant Multimédia IA — TP4",
-  "short_name": "TP4 IA",
-  "start_url": "./",
+  "name": "TerraSentinel Explorer",
+  "short_name": "TerraSentinel",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0b0f16",
-  "theme_color": "#0b0f16",
+  "background_color": "#0c1f24",
+  "theme_color": "#123a42",
+  "description": "Cartographie IA + boussole 3D + reconnaissance d'écosystèmes.",
   "icons": [
-    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    {
+      "src": "assets/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
   ]
 }

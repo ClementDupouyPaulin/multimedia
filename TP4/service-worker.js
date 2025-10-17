@@ -1,25 +1,54 @@
-const CACHE = 'tp4-pwa-v1';
-const OFFLINE_FILES = [
-  './',
-  './index.html',
-  './styles.css',
-  './app.js',
-  './compass.js',
-  './vision.js',
-  './ui.js',
-  './assets/icon.svg'
+const CACHE_NAME = "terrasentinel-cache-v1";
+const ASSETS = [
+  "./",
+  "./index.html",
+  "./styles.css",
+  "./app.js",
+  "./ui.js",
+  "./compass.js",
+  "./vision.js",
+  "./manifest.webmanifest",
+  "./assets/icons/icon-192.svg",
+  "./assets/icons/icon-512.svg",
+  "./assets/models/eco_leaf.gltf",
 ];
 
-self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(OFFLINE_FILES)));
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(ASSETS))
+      .catch((error) => console.warn("Cache install error", error))
+  );
 });
-self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => k!==CACHE ? caches.delete(k) : null))));
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME)
+            .map((key) => caches.delete(key))
+        )
+      )
+      .then(() => self.clients.claim())
+  );
 });
-self.addEventListener('fetch', (e) => {
-  const { request } = e;
-  if (request.method !== 'GET') return;
-  e.respondWith(
-    caches.match(request).then(resp => resp || fetch(request).catch(() => caches.match('./')))
+
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(event.request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => caches.match("./index.html"));
+    })
   );
 });
